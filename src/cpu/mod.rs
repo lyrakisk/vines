@@ -53,22 +53,6 @@ impl CPU {
         self.program_counter = self.mapper.borrow().read_u16(0xFFFC);
     }
 
-    pub fn run(&mut self) {
-        loop {
-            self.execute_next_instruction();
-        }
-    }
-
-    pub fn run_with_callback<F>(&mut self, mut callback: F)
-    where
-        F: FnMut(&mut CPU),
-    {
-        loop {
-            callback(self);
-            self.execute_next_instruction();
-        }
-    }
-
     pub fn execute_next_instruction(&mut self) -> InstructionResult {
         let mut instruction_result = InstructionResult { executed_cycles: 0 };
         instruction_result.executed_cycles += self.handle_nmi_interrupt();
