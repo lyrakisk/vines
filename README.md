@@ -1,6 +1,6 @@
 # vines
 A NES emulator written in Rust.   
-![image](https://github.com/user-attachments/assets/bb47153a-433a-4c9e-97e1-85bfd7fa192d)
+![image](./docs/images/pacman_screenshot.png)
 
 # Try the examples
 - Install Rust
