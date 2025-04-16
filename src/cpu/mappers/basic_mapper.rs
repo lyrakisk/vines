@@ -70,10 +70,6 @@ impl Memory for BasicMapper {
                 }
             }
             0x4000..=0x4015 | 0x4017 => {
-                println!(
-                    "Ignoring read from {:0x}, APU and IO are not implemented yet, returning 0",
-                    address
-                );
                 return 0;
             }
             0x4016 => self.controller.borrow_mut().read_u8(),
@@ -96,18 +92,13 @@ impl Memory for BasicMapper {
                     0x2002 => panic!("Status register is read-only!"),
                     0x2003 => self.ppu.borrow_mut().write_oam_address(data),
                     0x2004 => println!("OAMDATA register is not implemented yet!"),
-                    0x2005 => println!("Scroll register is not implemented yet!"),
+                    0x2005 => (), // println!("Scroll register is not implemented yet!"),
                     0x2006 => self.ppu.borrow_mut().write_address(data),
                     0x2007 => self.ppu.borrow_mut().write_data(data),
                     _ => panic!("Impossible!"),
                 }
             }
-            0x4000..=0x4013 | 0x4015 | 0x4017 => {
-                println!(
-                    "Ignoring write to {:0x}, APU and IO are not implemented yet",
-                    address
-                );
-            }
+            0x4000..=0x4013 | 0x4015 | 0x4017 => {}
             0x4014 => {
                 let address = u16::from_be_bytes([data, 0x00]) as usize;
                 // possible timing issue. Normally, this would take 513-514 cycles,
