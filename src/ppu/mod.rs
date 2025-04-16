@@ -174,23 +174,23 @@ impl PPU {
         match self.cycles {
             0 => (),
             1..=256 => {
-                if self.scanline < 240 {
-                    self.render_pixel(self.cycles - 1, self.scanline);
-                }
+                // if self.scanline < 240 {
+                //     self.render_pixel(self.cycles - 1, self.scanline);
+                // }
             }
             257..=340 => (),
             _ => {
                 self.cycles = self.cycles - 341;
                 self.scanline += 1;
 
-                // todo: Implement sprite rendering with proper timing
+                // todo: Implement background & sprite rendering with proper timing
                 if self.scanline == 240 {
+                    self.render_background();
                     self.render_sprites();
                 }
 
                 if self.scanline == 241 {
                     self.status.set_v_blank();
-                    self.scanline += 1;
                     if self.control.nmi_enable() {
                         // println!("nmi triggered, from scanline 241");
                         self.nmi_triggered = true;
@@ -205,6 +205,18 @@ impl PPU {
             }
         }
         self.cycles += 1;
+    }
+
+    fn render_background(&mut self) {
+        for x in 0..256 {
+            for y in 0..240 {
+                self.render_pixel(x, y);
+            }
+        }
+    }
+
+    fn render_tile(&mut self, tile_x: u16, tile_y: u16) {
+        todo!()
     }
 
     fn render_pixel(&mut self, x: u16, y: u16) {
