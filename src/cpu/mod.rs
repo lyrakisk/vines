@@ -221,7 +221,7 @@ impl CPU {
 mod test_cpu {
     use super::*;
     use crate::cpu::mappers::test_mapper::TestMapper;
-    use json::JsonValue;
+    use jzon::JsonValue;
     use test_case::test_case;
 
     #[test]
@@ -442,7 +442,7 @@ mod test_cpu {
     #[test_case("submodules/65x02/nes6502/v1/fe.json")]
     fn run_test_from_json(path: &str) {
         let tests_string = std::fs::read_to_string(path).unwrap();
-        let tests = json::parse(tests_string.as_str()).unwrap();
+        let tests = jzon::parse(tests_string.as_str()).unwrap();
 
         for i in 0..tests.len() {
             run_test(&tests[i]);
@@ -520,7 +520,7 @@ mod test_cpu {
     #[test]
     fn test_example() {
         let test_case  = "{ \"name\": \"03 6e 78\", \"initial\": { \"pc\": 63085, \"s\": 16, \"a\": 140, \"x\": 122, \"y\": 205, \"p\": 38, \"ram\": [ [63085, 3], [63086, 110], [63087, 120], [110, 248], [232, 110], [233, 246]]}, \"final\": { \"pc\": 63087, \"s\": 16, \"a\": 220, \"x\": 122, \"y\": 205, \"p\": 164, \"ram\": [ [110, 248], [232, 110], [233, 246], [63085, 3], [63086, 220], [63087, 120]]}, \"cycles\": [ [63085, 3, \"read\"], [63086, 110, \"read\"], [110, 248, \"read\"], [232, 110, \"read\"], [233, 246, \"read\"], [63086, 110, \"read\"], [63086, 110, \"write\"], [63086, 220, \"write\"]] }";
-        let json_value = json::parse(test_case).unwrap();
+        let json_value = jzon::parse(test_case).unwrap();
         run_test(&json_value);
     }
 }
