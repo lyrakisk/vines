@@ -215,10 +215,6 @@ impl PPU {
         }
     }
 
-    fn render_tile(&mut self, tile_x: u16, tile_y: u16) {
-        todo!()
-    }
-
     fn render_pixel(&mut self, x: u16, y: u16) {
         let bank = (self.control.background_pattern_table_address() as u16) * 0x1000;
         // println!("bank: {}", bank);
