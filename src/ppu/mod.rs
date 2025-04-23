@@ -208,17 +208,16 @@ impl PPU {
     }
 
     fn render_background(&mut self) {
+        let bank = (self.control.background_pattern_table_address() as u16) * 0x1000;
+        assert!(bank == 0 || bank == 0x1000);
         for x in 0..256 {
             for y in 0..240 {
-                self.render_pixel(x, y);
+                self.render_pixel(x, y, bank);
             }
         }
     }
 
-    fn render_pixel(&mut self, x: u16, y: u16) {
-        let bank = (self.control.background_pattern_table_address() as u16) * 0x1000;
-        // println!("bank: {}", bank);
-        assert!(bank == 0 || bank == 0x1000);
+    fn render_pixel(&mut self, x: u16, y: u16, bank: u16) {
         let nametable_x = x / 8;
         let nametable_y = y / 8;
         let nametable_base = self.control.nametable_base();
