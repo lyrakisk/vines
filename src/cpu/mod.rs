@@ -108,11 +108,7 @@ impl CPU {
     }
 
     fn decode(&self, opcode: u8) -> Option<Instruction> {
-        if !INSTRUCTIONS.contains_key(&opcode) {
-            return None;
-        } else {
-            return Some(INSTRUCTIONS[&opcode].clone());
-        }
+        return INSTRUCTIONS.get(opcode);
     }
 
     pub fn load(&mut self, program: Vec<u8>) {

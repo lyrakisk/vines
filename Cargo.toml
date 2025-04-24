@@ -16,3 +16,6 @@ test-case = "3.3.1"
 jzon = "0.12.4"
 sdl2 = "0.34.0"
 rand = "=0.7.3"
+
+[profile.release]
+debug = true

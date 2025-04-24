@@ -1,7 +1,6 @@
 use crate::cpu::addressing_modes::*;
 use crate::cpu::*;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct Instruction {
@@ -18,7 +17,6 @@ pub struct InstructionResult {
 
 impl Instruction {
     pub fn execute(&self, cpu: &mut CPU) -> InstructionResult {
-        // println!("instruction {}, PC {}", self.name, cpu.program_counter);
         match self.name {
             "AAC" => aac(self, cpu),
             "ADC" => adc(self, cpu),
@@ -87,7 +85,7 @@ impl Instruction {
 }
 
 #[rustfmt::skip]
-pub static INSTRUCTIONS: Lazy<HashMap<u8, Instruction>> = Lazy::new(|| {
+pub static INSTRUCTIONS: Lazy<InstructionSet> = Lazy::new(|| {
     vec![
         Instruction {opcode: 0x69, name: "ADC", bytes: 2, addressing_mode: AddressingModes::Immediate, cycles: 2},
         Instruction {opcode: 0x65, name: "ADC", bytes: 2, addressing_mode: AddressingModes::ZeroPage, cycles: 3},
@@ -287,9 +285,64 @@ pub static INSTRUCTIONS: Lazy<HashMap<u8, Instruction>> = Lazy::new(|| {
         Instruction {opcode: 0xFC, name: "TOP", bytes: 3, addressing_mode: AddressingModes::AbsoluteX, cycles: 4},
         ]
     .into_iter()
-    .map(|instruction| (instruction.opcode, instruction))
     .collect()
 });
+
+pub struct InstructionSet {
+    pub instructions: [Option<Instruction>; 256],
+}
+
+impl InstructionSet {
+    pub fn new() -> Self {
+        Self {
+            instructions: [const { None }; 256],
+        }
+    }
+
+    pub fn get(&self, opcode: u8) -> Option<Instruction> {
+        self.instructions[opcode as usize].clone()
+    }
+}
+
+impl FromIterator<Instruction> for InstructionSet {
+    fn from_iter<T: IntoIterator<Item = Instruction>>(iter: T) -> Self {
+        let mut instruction_set = InstructionSet::new();
+        for instruction in iter {
+            instruction_set.instructions[instruction.opcode as usize] = Some(instruction.clone());
+        }
+        instruction_set
+    }
+}
+pub struct U8Set {
+    present: [bool; 256],
+}
+
+impl U8Set {
+    pub fn new() -> Self {
+        Self {
+            present: [false; 256],
+        }
+    }
+
+    pub fn insert(&mut self, x: u8) {
+        self.present[x as usize] = true;
+    }
+
+    pub fn contains(&self, x: u8) -> bool {
+        self.present[x as usize]
+    }
+}
+
+impl FromIterator<u8> for U8Set {
+    fn from_iter<T: IntoIterator<Item = u8>>(iter: T) -> Self {
+        let mut set = U8Set::new();
+        for x in iter {
+            set.insert(x);
+        }
+        set
+    }
+}
+// pub static OPCODES: Lazy<U8Set>  = Lazy::new(|| {INSTRUCTIONS.keys().map(|key | *key).collect()});
 
 fn aac(instruction: &Instruction, cpu: &mut CPU) -> InstructionResult {
     let operand = instruction.addressing_mode.get_operand(&cpu);
