@@ -65,7 +65,8 @@ impl CPU {
         match decoded_opcode {
             None => panic!("Could not decode opcode 0x{:02x}", opcode),
             Some(instruction) => {
-                instruction_result.executed_cycles = instruction.execute(self).executed_cycles;
+                instruction_result.executed_cycles =
+                    (instruction.execute)(&instruction, self).executed_cycles;
                 self.update_program_counter(instruction);
 
                 return instruction_result;
