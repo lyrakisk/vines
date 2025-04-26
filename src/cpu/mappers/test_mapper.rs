@@ -44,6 +44,10 @@ impl Memory for TestMapper {
         self.memory[index] = bytes[0];
         self.memory[index + 1] = bytes[1];
     }
+
+    fn nmi_occured(&self) -> bool {
+        false
+    }
 }
 
 #[cfg(test)]

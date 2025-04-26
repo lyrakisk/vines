@@ -14,7 +14,7 @@ use std::fs::read;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 fn main() {
     env::set_var("RUST_BACKTRACE", "full");
@@ -42,12 +42,8 @@ fn main() {
     let ppu = Rc::new(RefCell::new(PPU::new(rom.chr_rom.clone())));
 
     let controller = Rc::new(RefCell::new(Controller::new()));
-    let cpu_mapper = Rc::new(RefCell::new(BasicMapper::new(
-        rom,
-        ppu.clone(),
-        controller.clone(),
-    )));
-    let mut cpu = CPU::new(cpu_mapper.clone());
+    let cpu_mapper = BasicMapper::new(rom, ppu.clone(), controller.clone());
+    let mut cpu = CPU::new(cpu_mapper);
 
     cpu.reset();
 
@@ -56,7 +52,7 @@ fn main() {
     let mut dur_count = 0;
 
     loop {
-        let start = Instant::now();
+        // let start = Instant::now();
 
         if total_cycles % 6820 == 0 {
             handle_user_input(controller.clone(), &mut event_pump);
@@ -75,13 +71,13 @@ fn main() {
 
         total_cycles += instruction_result.executed_cycles as usize;
 
-        let duration = start.elapsed();
-        dur_sum += duration.as_nanos() as usize;
-        dur_count += 1;
-        if dur_count % 68200 == 0 {
-            let avg = dur_sum / dur_count;
-            println!("Average cycle time: {} ns", avg);
-        }
+        // let duration = start.elapsed();
+        // dur_sum += duration.as_nanos() as usize;
+        // dur_count += 1;
+        // if total_cycles % 6820000 == 0 {
+        //     let avg = dur_sum / dur_count;
+        //     println!("Average cycle time: {} ns", avg);
+        // }
     }
 }
 

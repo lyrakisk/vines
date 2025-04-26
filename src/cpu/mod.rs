@@ -2,9 +2,6 @@ mod addressing_modes;
 mod instructions;
 pub mod mappers;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use crate::cpu::instructions::*;
 use crate::memory::Memory;
 
@@ -23,18 +20,21 @@ enum FlagStates {
 }
 
 // #[derive(Debug)]
-pub struct CPU {
+pub struct CPU<M: Memory> {
     register_a: u8,
     register_x: u8,
     register_y: u8,
     status: u8,
     program_counter: u16,
     stack_pointer: u8,
-    mapper: Rc<RefCell<dyn Memory>>,
+    mapper: M,
 }
 
-impl CPU {
-    pub fn new(mapper: Rc<RefCell<dyn Memory>>) -> Self {
+impl<M: Memory + 'static> CPU<M>
+where
+    M: 'static,
+{
+    pub fn new(mapper: M) -> Self {
         CPU {
             register_a: 0,
             register_x: 0, // todo: check reference, should this be initialized?
@@ -50,7 +50,7 @@ impl CPU {
         self.register_a = 0;
         self.register_x = 0;
         self.status = 0;
-        self.program_counter = self.mapper.borrow().read_u16(0xFFFC);
+        self.program_counter = self.mapper.read_u16(0xFFFC);
     }
 
     pub fn execute_next_instruction(&mut self) -> InstructionResult {
@@ -65,8 +65,7 @@ impl CPU {
         match decoded_opcode {
             None => panic!("Could not decode opcode 0x{:02x}", opcode),
             Some(instruction) => {
-                instruction_result.executed_cycles =
-                    (instruction.execute)(&instruction, self).executed_cycles;
+                instruction_result.executed_cycles = instruction.execute(self).executed_cycles;
                 self.update_program_counter(instruction);
 
                 return instruction_result;
@@ -75,8 +74,8 @@ impl CPU {
     }
 
     pub fn handle_nmi_interrupt(&mut self) -> u8 {
-        if self.mapper.borrow().nmi_occured() {
-            let interrupt_vector = self.mapper.borrow().read_u16(0xFFFA);
+        if self.mapper.nmi_occured() {
+            let interrupt_vector = self.mapper.read_u16(0xFFFA);
             self.stack_push_u16(self.program_counter);
 
             self.stack_push(self.status | 0b0001_0000);
@@ -103,60 +102,47 @@ impl CPU {
     }
 
     fn fetch(&mut self) -> u8 {
-        let opcode = self.mapper.borrow().read_u8(self.program_counter);
+        let opcode = self.mapper.read_u8(self.program_counter);
         self.program_counter = self.program_counter.wrapping_add(1);
         return opcode;
     }
 
     fn decode(&self, opcode: u8) -> Option<Instruction> {
-        return INSTRUCTIONS.get(opcode);
+        return INSTRUCTIONS.get_instruction(opcode);
     }
 
     pub fn load(&mut self, program: Vec<u8>) {
         for address in self.program_counter..=(self.program_counter - 1 + program.len() as u16) {
             let program_address = (address).wrapping_sub(self.program_counter) as usize;
             self.mapper
-                .borrow_mut()
                 .write_u8(address as u16, program[program_address]);
         }
     }
 
     fn stack_pop(&mut self) -> u8 {
         self.stack_pointer = self.stack_pointer.wrapping_add(1);
-        return self
-            .mapper
-            .borrow()
-            .read_u8(0x0100 + (self.stack_pointer as u16));
+        return self.mapper.read_u8(0x0100 + (self.stack_pointer as u16));
     }
     fn stack_pop_u16(&mut self) -> u16 {
         self.stack_pointer = self.stack_pointer.wrapping_add(1);
-        let low_order_byte = self
-            .mapper
-            .borrow()
-            .read_u8(0x0100 + (self.stack_pointer as u16));
+        let low_order_byte = self.mapper.read_u8(0x0100 + (self.stack_pointer as u16));
         self.stack_pointer = self.stack_pointer.wrapping_add(1);
-        let high_order_byte = self
-            .mapper
-            .borrow()
-            .read_u8(0x0100 + (self.stack_pointer as u16));
+        let high_order_byte = self.mapper.read_u8(0x0100 + (self.stack_pointer as u16));
 
         return u16::from_le_bytes([low_order_byte, high_order_byte]).wrapping_add(1);
     }
 
     fn stack_push(&mut self, data: u8) {
         self.mapper
-            .borrow_mut()
             .write_u8(0x0100 + (self.stack_pointer as u16), data);
         self.stack_pointer = self.stack_pointer.wrapping_sub(1);
     }
     fn stack_push_u16(&mut self, data: u16) {
         let bytes = data.to_le_bytes();
         self.mapper
-            .borrow_mut()
             .write_u8(0x0100 + (self.stack_pointer as u16), bytes[1]);
         self.stack_pointer = self.stack_pointer.wrapping_sub(1);
         self.mapper
-            .borrow_mut()
             .write_u8(0x0100 + (self.stack_pointer as u16), bytes[0]);
         self.stack_pointer = self.stack_pointer.wrapping_sub(1);
     }
@@ -216,6 +202,8 @@ impl CPU {
 
 #[cfg(test)]
 mod test_cpu {
+    use std::marker::PhantomData;
+
     use super::*;
     use crate::cpu::mappers::test_mapper::TestMapper;
     use jzon::JsonValue;
@@ -223,21 +211,21 @@ mod test_cpu {
 
     #[test]
     fn test_load() {
-        let mapper = Rc::new(RefCell::new((TestMapper::new())));
+        let mut mapper = TestMapper::new();
         let mut cpu = CPU::new(mapper);
         cpu.program_counter = 0x8000;
         let program = vec![0xAA, 0x35, 0xFF, 0x00];
         cpu.load(program);
-        assert_eq!(0xAA, cpu.mapper.borrow().read_u8(0x8000));
-        assert_eq!(0x35, cpu.mapper.borrow().read_u8(0x8001));
-        assert_eq!(0xFF, cpu.mapper.borrow().read_u8(0x8002));
-        assert_eq!(0x00, cpu.mapper.borrow().read_u8(0x8003));
+        assert_eq!(0xAA, cpu.mapper.read_u8(0x8000));
+        assert_eq!(0x35, cpu.mapper.read_u8(0x8001));
+        assert_eq!(0xFF, cpu.mapper.read_u8(0x8002));
+        assert_eq!(0x00, cpu.mapper.read_u8(0x8003));
     }
 
     #[test_case(0b0, 0b0000_0010)]
     #[test_case(0b10, 0b0)]
     fn test_update_zero_flag(register: u8, expected: u8) {
-        let mapper = Rc::new(RefCell::new(TestMapper::new()));
+        let mapper = TestMapper::new();
         let mut cpu = CPU::new(mapper);
         cpu.update_zero_flag(register);
         assert_eq!(cpu.status, expected);
@@ -450,9 +438,9 @@ mod test_cpu {
         let name = &test["name"];
         println!("Testing with instructions: {}", name);
 
-        let (final_cpu, final_mapper) = parse_json_value(&test["final"]);
+        let final_cpu = parse_json_value(&test["final"]);
 
-        let (mut cpu, mapper) = parse_json_value(&test["initial"]);
+        let mut cpu = parse_json_value(&test["initial"]);
 
         let executed_cycles = cpu.execute_next_instruction().executed_cycles;
         let expected_cycles = test["cycles"].members().count() as u8;
@@ -491,13 +479,13 @@ mod test_cpu {
             final_cpu.stack_pointer, cpu.stack_pointer
         );
 
-        assert_eq!(mapper, final_mapper, "Memories don't match!",);
+        assert_eq!(cpu.mapper, final_cpu.mapper, "Memories don't match!",);
     }
 
-    fn parse_json_value(json_value: &JsonValue) -> (CPU, Rc<RefCell<TestMapper>>) {
-        let mapper = Rc::new(RefCell::new(TestMapper::new()));
+    fn parse_json_value(json_value: &JsonValue) -> CPU<TestMapper> {
+        let mut mapper = TestMapper::new();
         for ram_tuple in json_value["ram"].members() {
-            mapper.borrow_mut().write_u8(
+            mapper.write_u8(
                 ram_tuple[0].as_u16().unwrap(),
                 ram_tuple[1].as_u8().unwrap(),
             );
@@ -511,7 +499,7 @@ mod test_cpu {
         cpu.register_y = json_value["y"].as_u8().unwrap();
         cpu.stack_pointer = json_value["s"].as_u8().unwrap();
 
-        return (cpu, mapper.clone());
+        return cpu;
     }
 
     #[test]

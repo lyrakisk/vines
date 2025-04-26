@@ -42,12 +42,8 @@ fn main() {
 
     let ppu = Rc::new(RefCell::new(PPU::new(rom.chr_rom.clone())));
     let controller = Rc::new(RefCell::new(Controller::new()));
-    let cpu_mapper = Rc::new(RefCell::new(BasicMapper::new(
-        rom,
-        ppu.clone(),
-        controller.clone(),
-    )));
-    let mut cpu = CPU::new(cpu_mapper.clone());
+    let cpu_mapper = BasicMapper::new(rom, ppu.clone(), controller.clone());
+    let mut cpu = CPU::new(cpu_mapper);
 
     cpu.reset();
 

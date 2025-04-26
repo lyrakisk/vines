@@ -9,7 +9,5 @@ pub trait Memory {
 
     fn write_u16(&mut self, address: u16, data: u16) -> ();
 
-    fn nmi_occured(&self) -> bool {
-        return false;
-    }
+    fn nmi_occured(&self) -> bool;
 }
