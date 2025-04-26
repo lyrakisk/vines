@@ -56,7 +56,6 @@ where
     pub fn execute_next_instruction(&mut self) -> InstructionResult {
         let mut instruction_result = InstructionResult { executed_cycles: 0 };
         instruction_result.executed_cycles += self.handle_nmi_interrupt();
-        // println!("PC: {:0x}", self.program_counter);
 
         let opcode = self.fetch();
 
@@ -65,7 +64,9 @@ where
         match decoded_opcode {
             None => panic!("Could not decode opcode 0x{:02x}", opcode),
             Some(instruction) => {
-                instruction_result.executed_cycles = instruction.execute(self).executed_cycles;
+                let nmi_cycles = self.handle_nmi_interrupt();
+                let mut instruction_result = instruction.execute(self);
+                instruction_result.executed_cycles += nmi_cycles;
                 self.update_program_counter(instruction);
 
                 return instruction_result;
