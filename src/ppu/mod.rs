@@ -185,8 +185,7 @@ impl PPU {
 
                 // todo: Implement background & sprite rendering with proper timing
                 if self.scanline == 240 {
-                    self.render_background();
-                    self.render_sprites();
+                    self.render_frame();
                 }
 
                 if self.scanline == 241 {
@@ -205,6 +204,11 @@ impl PPU {
             }
         }
         self.cycles += 1;
+    }
+
+    fn render_frame(&mut self) {
+        self.render_background();
+        self.render_sprites();
     }
 
     fn render_background(&mut self) {
