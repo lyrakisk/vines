@@ -74,7 +74,7 @@ where
         }
     }
 
-    pub fn handle_nmi_interrupt(&mut self) -> u8 {
+    fn handle_nmi_interrupt(&mut self) -> u8 {
         if self.mapper.nmi_occured() {
             let interrupt_vector = self.mapper.read_u16(0xFFFA);
             self.stack_push_u16(self.program_counter);
